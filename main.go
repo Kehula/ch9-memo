@@ -27,11 +27,13 @@ func New(f Func) *Memo {
 
 func (memo *Memo) Get(key string) (interface{}, error) {
 	memo.mu.Lock()
-	defer memo.mu.Unlock()
 	res, ok := memo.cache[key]
+	memo.mu.Unlock()
 	if !ok {
 		res.value, res.err = memo.f(key)
+		memo.mu.Lock()
 		memo.cache[key] = res
+		memo.mu.Unlock()
 	}
 	return res.value, res.err
 }

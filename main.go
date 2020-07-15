@@ -34,7 +34,7 @@ func (memo *Memo) Get(key string) (interface{}, error) {
 
 func main() {
 	m := New(httpGetBody)
-	for url := range GetIncomingUrls() {
+	for _, url := range GetIncomingURLs() {
 		start := time.Now()
 		value, err := m.Get(url)
 		if err != nil {
@@ -53,7 +53,7 @@ func httpGetBody(url string) (interface{}, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
-func GetIncomingUrls() []string {
+func GetIncomingURLs() []string {
 	return []string{"https://golang.org",
 		"https://godoc.org",
 		"https://play.golang.org",

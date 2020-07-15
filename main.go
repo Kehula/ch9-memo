@@ -30,7 +30,7 @@ func New(f Func) *Memo {
 	return &Memo{f: f, cache: make(map[string]*Entry)}
 }
 
-func (memo *Memo) Get(key string) (interface{}, error) {
+func (memo *Memo) Get(threadNum int, key string) (interface{}, error) {
 	memo.mu.Lock()
 	entry := memo.cache[key]
 	if entry == nil {
@@ -42,6 +42,7 @@ func (memo *Memo) Get(key string) (interface{}, error) {
 		close(entry.ready)
 	} else {
 		memo.mu.Unlock()
+		fmt.Printf("%d: %s is waiting for result\n", threadNum, key)
 		<-entry.ready
 	}
 
@@ -51,17 +52,17 @@ func (memo *Memo) Get(key string) (interface{}, error) {
 func main() {
 	m := New(httpGetBody)
 	var n sync.WaitGroup
-	for _, url := range GetIncomingURLs() {
+	for i, url := range GetIncomingURLs() {
 		n.Add(1)
-		go func(url string) {
+		go func(threadNum int, url string) {
 			defer n.Done()
 			start := time.Now()
-			value, err := m.Get(url)
+			value, err := m.Get(threadNum, url)
 			if err != nil {
 				log.Print(err)
 			}
-			fmt.Printf("%s, %s, %d bytes\n", url, time.Since(start), len(value.([]byte)))
-		}(url)
+			fmt.Printf("%d: %s, %s, %d bytes\n", threadNum, url, time.Since(start), len(value.([]byte)))
+		}(i, url)
 
 	}
 	n.Wait()

@@ -9,10 +9,15 @@ import (
 	"time"
 )
 
+type Entry struct {
+	res   Result
+	ready chan struct{}
+}
+
 type Memo struct {
 	f     Func
 	mu    sync.Mutex
-	cache map[string]Result
+	cache map[string]*Entry
 }
 
 type Func func(key string) (interface{}, error)
@@ -22,20 +27,25 @@ type Result struct {
 }
 
 func New(f Func) *Memo {
-	return &Memo{f: f, cache: make(map[string]Result)}
+	return &Memo{f: f, cache: make(map[string]*Entry)}
 }
 
 func (memo *Memo) Get(key string) (interface{}, error) {
 	memo.mu.Lock()
-	res, ok := memo.cache[key]
-	memo.mu.Unlock()
-	if !ok {
-		res.value, res.err = memo.f(key)
-		memo.mu.Lock()
-		memo.cache[key] = res
+	entry := memo.cache[key]
+	if entry == nil {
+		entry = &Entry{ready: make(chan struct{})}
+		memo.cache[key] = entry
 		memo.mu.Unlock()
+		entry.res.value, entry.res.err = memo.f(key)
+
+		close(entry.ready)
+	} else {
+		memo.mu.Unlock()
+		<-entry.ready
 	}
-	return res.value, res.err
+
+	return entry.res.value, entry.res.err
 }
 
 func main() {

@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"time"
 )
 
 type Memo struct {
@@ -30,7 +33,15 @@ func (memo *Memo) Get(key string) (interface{}, error) {
 }
 
 func main() {
-
+	m := New(httpGetBody)
+	for url := range GetIncomingUrls() {
+		start := time.Now()
+		value, err := m.Get(url)
+		if err != nil {
+			log.Print(err)
+		}
+		fmt.Printf("%s, %s, %d bytes\n", url, time.Since(start), len(value.([]byte)))
+	}
 }
 
 func httpGetBody(url string) (interface{}, error) {
@@ -40,4 +51,15 @@ func httpGetBody(url string) (interface{}, error) {
 	}
 	defer resp.Body.Close()
 	return ioutil.ReadAll(resp.Body)
+}
+
+func GetIncomingUrls() []string {
+	return []string{"https://golang.org",
+		"https://godoc.org",
+		"https://play.golang.org",
+		"http://gopl.io",
+		"https://golang.org",
+		"https://godoc.org",
+		"https://play.golang.org",
+		"http://gopl.io"}
 }
